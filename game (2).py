@@ -43,7 +43,7 @@ if st.button("🎲 Spin!"):
 
     # Logika kemenangan
     if result[0] == result[1] == result[2]:
-        st.success("🎉 JACKPOT! You win!")
+        st.success("🎉 SUPER GACOR!!⚡⚡")
     elif result[0] == result[1] or result[1] == result[2] or result[0] == result[2]:
         st.info("✨ Nice! You got a pair!")
     else:
