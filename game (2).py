@@ -1,59 +1,76 @@
 import streamlit as st
 import random
 
-# Simbol slot yang digunakan (bisa diganti)
-symbols = ["🍒", "🍋", "🔔", "💎", "🍀", "7️⃣"]
+# Daftar kata-kata 5 huruf (kamu bisa tambah lagi)
+WORDS = [
+    'karet', 'motor', 'kelas', 'hutan', 'jalan', 'rumah', 'botol', 'peluk',
+    'kerja', 'tebak', 'pohon', 'pisau', 'gadis', 'hitam', 'merah'
+]
 
-st.set_page_config(page_title="🎰 Slot Machine Game", layout="centered")
+MAX_GUESS = 6
 
-st.title("🎰 Slot Machine Game")
-st.caption("By OpenAI & Streamlit")
+# Inisialisasi session state
+if "target_word" not in st.session_state:
+    st.session_state.target_word = random.choice(WORDS)
+    st.session_state.guesses = []
+    st.session_state.game_over = False
+    st.session_state.success = False
 
-# CSS sederhana untuk mempercantik tampilan
-st.markdown("""
-<style>
-.slot-box {
-    font-size: 72px;
-    text-align: center;
-    padding: 10px;
-    border: 2px solid #ccc;
-    border-radius: 10px;
-}
-</style>
-""", unsafe_allow_html=True)
+def get_feedback(guess, target):
+    feedback = []
+    target_letters = list(target)
+    for i in range(5):
+        if guess[i] == target[i]:
+            feedback.append(("🟩", guess[i]))  # Benar & posisi benar
+            target_letters[i] = None
+        else:
+            feedback.append(("", guess[i]))  # Placeholder
 
-# Buat kolom untuk slot
-col1, col2, col3 = st.columns(3)
+    for i in range(5):
+        if feedback[i][0] == "":
+            if guess[i] in target_letters:
+                feedback[i] = ("🟨", guess[i])  # Ada tapi posisi salah
+                target_letters[target_letters.index(guess[i])] = None
+            else:
+                feedback[i] = ("⬜", guess[i])  # Tidak ada
+    return feedback
 
-# Fungsi untuk melakukan spin slot
-def spin_slots():
-    return [random.choice(symbols) for _ in range(3)]
+# UI Streamlit
+st.title("🟩🟨 Wordle Versi Python di Streamlit")
 
-# Tombol Spin
-if st.button("🎲 Spin!"):
-    result = spin_slots()
-    
-    # Tampilkan hasil slot di masing-masing kolom
-    with col1:
-        st.markdown(f"<div class='slot-box'>{result[0]}</div>", unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"<div class='slot-box'>{result[1]}</div>", unsafe_allow_html=True)
-    with col3:
-        st.markdown(f"<div class='slot-box'>{result[2]}</div>", unsafe_allow_html=True)
-
-    # Logika kemenangan
-    if result[0] == result[1] == result[2]:
-        st.success("🎉 SUPER GACOR!!⚡⚡")
-    elif result[0] == result[1] or result[1] == result[2] or result[0] == result[2]:
-        st.info("✨ Nice! You got a pair!")
+if st.session_state.game_over:
+    if st.session_state.success:
+        st.success("🎉 Selamat! Kamu menebak katanya!")
     else:
-        st.warning("😢 Try again!")
+        st.error(f"😞 Game Over! Kata yang benar adalah: **{st.session_state.target_word.upper()}**")
+    if st.button("Main lagi"):
+        st.session_state.target_word = random.choice(WORDS)
+        st.session_state.guesses = []
+        st.session_state.game_over = False
+        st.session_state.success = False
+    st.stop()
 
-else:
-    # Tampilan awal sebelum spin
-    with col1:
-        st.markdown(f"<div class='slot-box'>❔</div>", unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"<div class='slot-box'>❔</div>", unsafe_allow_html=True)
-    with col3:
-        st.markdown(f"<div class='slot-box'>❔</div>", unsafe_allow_html=True)
+# Form input tebakan
+with st.form("guess_form", clear_on_submit=True):
+    guess = st.text_input("Masukkan tebakan (5 huruf):", max_chars=5).lower()
+    submitted = st.form_submit_button("Tebak")
+
+    if submitted:
+        if len(guess) != 5 or not guess.isalpha():
+            st.warning("Tebakan harus terdiri dari 5 huruf.")
+        elif guess not in WORDS:
+            st.warning("Kata tidak ditemukan di kamus.")
+        else:
+            st.session_state.guesses.append(guess)
+            if guess == st.session_state.target_word:
+                st.session_state.success = True
+                st.session_state.game_over = True
+            elif len(st.session_state.guesses) >= MAX_GUESS:
+                st.session_state.game_over = True
+
+# Tampilkan semua tebakan
+st.subheader("Tebakan kamu:")
+for guess in st.session_state.guesses:
+    feedback = get_feedback(guess, st.session_state.target_word)
+    feedback_str = "".join([f"{symbol}{letter.upper()}" for symbol, letter in feedback])
+    st.write(feedback_str)
